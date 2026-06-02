@@ -111,6 +111,26 @@
   .calib-subhead { grid-column: 1 / -1; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6b778c; margin-top: 0.5rem; padding-bottom: 2px; border-bottom: 1px solid #ebecf0; }
   .reset-btn { font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid #c1c7d0; background: #fff; color: #42526e; cursor: pointer; margin-top: 0.75rem; }
   .reset-btn:hover { background: #f4f5f7; }
+
+  /* Expandable help sections */
+  details.help { border: 1px solid #dfe1e6; border-radius: 6px; margin-bottom: 1rem; background: #fff; }
+  details.help > summary { padding: 0.6rem 1rem; cursor: pointer; user-select: none; font-size: 12px; font-weight: 700; color: #0052cc; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.help > summary::-webkit-details-marker { display: none; }
+  details.help > summary::before { content: "▶"; font-size: 10px; color: #6b778c; transition: transform 0.2s ease; }
+  details.help[open] > summary::before { transform: rotate(90deg); }
+  details.help > summary:hover { background: #f4f5f7; }
+  details.help .help-body { padding: 0.25rem 1rem 0.9rem; font-size: 12px; color: #42526e; line-height: 1.65; }
+  details.help .help-body p { margin-bottom: 0.6rem; }
+  details.help .help-body p:last-child { margin-bottom: 0; }
+  details.help .help-body strong { color: #172b4d; }
+  .gloss { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 0.25rem; }
+  .gloss td { padding: 5px 8px; border-bottom: 1px solid #f4f5f7; color: #42526e; vertical-align: top; }
+  .gloss tr:last-child td { border-bottom: none; }
+  .gloss td:first-child { font-weight: 700; color: #172b4d; white-space: nowrap; width: 150px; }
+
+  /* Inline help hint under a control group */
+  .hint { font-size: 10px; color: #97a0af; margin: -0.3rem 0 0.6rem 0; line-height: 1.4; }
+  .input-group-label { display: flex; align-items: baseline; justify-content: space-between; }
 </style>
 </head>
 <body>
@@ -140,6 +160,39 @@
   <p><strong>All volumes are usable/fillable capacity.</strong> Underlying protection (replication, EC, RAID) and I/O throughput are out of scope (see notes). All ratios are tunable in the Advanced panel.</p>
 </div>
 
+<!-- HOW TO USE -->
+<details class="help">
+  <summary>How to use this calculator</summary>
+  <div class="help-body">
+    <p>This tool estimates the storage a single SRCNet node needs, broken into five pools. Adjust the inputs on the left (what the node does) and right (its allocation), and the estimates update live.</p>
+    <p><strong>1. Set what the node runs:</strong> the number of active projects, its compute (PFLOPS), and the pipeline type (which affects scratch only).</p>
+    <p><strong>2. Set the node's allocation:</strong> the total SRCNet online storage and this node's percentage share of it. This is the budget that T0, Project, User, and T1 must fit within.</p>
+    <p><strong>3. Read the partition bar:</strong> it shows how the allocation divides into T0, Project, User, and the T1 bulk remainder. A red warning means the node is over-allocated (the sized pools exceed its share).</p>
+    <p><strong>4. Tune the model (optional):</strong> open the Advanced panel to change the underlying ratios (space per project, T0:Project ratio, scratch per PFLOP, etc.). Defaults are based on the SKA SRC reference. Use “Reset” to restore them.</p>
+    <p>Every figure is <strong>usable capacity</strong> — the space presented to users and pipelines, not raw disk. How that capacity is protected (replication, erasure coding) and whether the node has enough I/O bandwidth are separate questions, noted at the bottom.</p>
+  </div>
+</details>
+
+<!-- GLOSSARY -->
+<details class="help">
+  <summary>Glossary — tiers &amp; terms</summary>
+  <div class="help-body">
+    <table class="gloss">
+      <tr><td>T0 — fast POSIX</td><td>High-performance, low-latency storage where active project data is processed. Sized as Project space × the T0:Project ratio.</td></tr>
+      <tr><td>T1 — bulk Rucio</td><td>High-capacity bulk archive (Rucio-managed). Takes the remainder of the node allocation after T0, Project, and User are carved out.</td></tr>
+      <tr><td>Project space</td><td>The active working area for science data products. Nominal allocation per project × number of active projects. Independent of compute.</td></tr>
+      <tr><td>Scratch / cache</td><td>Ephemeral pipeline working space (calibration intermediates, gridding buffers). The only pool that scales with compute. A separate filesystem — not part of the online allocation.</td></tr>
+      <tr><td>User space</td><td>Per-user home/working quota, plus a backup overhead factor for snapshots and versioning.</td></tr>
+      <tr><td>SRCNet Online Total</td><td>The total online (T0 + T1) storage across the whole SRC Network fabric. A node receives a percentage share of this.</td></tr>
+      <tr><td>Node share</td><td>This node's percentage of the SRCNet Online Total — its storage budget.</td></tr>
+      <tr><td>T0:Project ratio</td><td>How much larger T0 is than Project space, to allow staging and working headroom on fast storage. Default 1.2 (T0 is 20% larger than Project).</td></tr>
+      <tr><td>PFLOPS</td><td>Peta-FLOPS — the node's compute capacity. Drives scratch and the per-core figures.</td></tr>
+      <tr><td>Pipeline type</td><td>The kind of radio astronomy processing. Continuum, spectral line, and pulsar workloads exercise scratch differently (a multiplier on scratch volume only).</td></tr>
+      <tr><td>Backup overhead</td><td>Extra usable capacity on user space for snapshots / versioning / copy-on-write retention. Applied to user space only.</td></tr>
+    </table>
+  </div>
+</details>
+
 <!-- ADVANCED -->
 <div class="advanced" id="advanced">
   <div class="advanced-header" onclick="document.getElementById('advanced').classList.toggle('open')">
@@ -167,6 +220,7 @@
 <div class="two-col">
   <div>
     <p class="sec-label">Projects &amp; compute</p>
+    <p class="hint">What this node runs. Projects drive Project &amp; T0 space; compute drives scratch only.</p>
     <div class="prow">
       <span class="plabel">Active projects</span>
       <input type="range" id="projects" min="1" max="100" step="1" value="20" oninput="recalc()">
@@ -196,6 +250,7 @@
 
   <div>
     <p class="sec-label">Node allocation &amp; sizing</p>
+    <p class="hint">The node's storage budget = SRCNet Online Total × node share. T0 + Project + User must fit inside it; T1 takes the rest.</p>
     <div class="prow">
       <span class="plabel">SRCNet Online Total</span>
       <input type="range" id="fac-online" min="10" max="500" step="5" value="270" oninput="recalc()">
@@ -235,6 +290,7 @@
 </div>
 
 <p class="sec-label">SRCNet node allocation — partition (T0 + Project + User + T1 remainder)</p>
+<p class="hint">The full bar = the node's allocation. Coloured segments are the sized pools; the green T1 segment is whatever capacity is left for bulk archive.</p>
 <div class="stack-bar" id="stack-bar"></div>
 <div class="legend-row" id="stack-legend"></div>
 <div id="alloc-validation"></div>
