@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HPC Storage Calculator — Radio Astronomy</title>
+<!--
+  ============================================================
+  CONFLUENCE EMBED / GITHUB PAGES
+  ============================================================
+  • GitHub Pages: rename to index.html, enable Pages on the repo
+    (Settings → Pages → deploy from branch). Served at
+    https://<user>.github.io/<repo>/
+  • Confluence: use the iframe macro pointing at the Pages URL,
+    or paste the <body> contents into an HTML macro.
+  ============================================================
+-->
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 14px; color: #172b4d; background: #fff; padding: 1.25rem; max-width: 960px; }
+  h1 { font-size: 18px; font-weight: 700; color: #172b4d; margin-bottom: 0.2rem; }
+  .subtitle { font-size: 12px; color: #6b778c; margin-bottom: 1.25rem; }
+
+  .motivation { background: #f4f5f7; border-left: 4px solid #0052cc; border-radius: 0 6px 6px 0; padding: 0.9rem 1.1rem; margin-bottom: 1.25rem; }
+  .motivation p { font-size: 12px; color: #42526e; line-height: 1.6; margin-bottom: 0.5rem; }
+  .motivation p:last-child { margin-bottom: 0; }
+  .motivation strong { color: #172b4d; }
+
+  .flow { display: flex; align-items: center; gap: 0; margin: 0.75rem 0 0.25rem; flex-wrap: wrap; }
+  .flow-step { font-size: 11px; padding: 4px 10px; border-radius: 3px; font-weight: 600; white-space: nowrap; }
+  .flow-arrow { font-size: 14px; color: #97a0af; padding: 0 4px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem; }
+  .sec-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #6b778c; margin: 0 0 0.75rem; }
+  .prow { display: flex; align-items: center; gap: 10px; margin-bottom: 0.65rem; }
+  .plabel { font-size: 12px; color: #42526e; min-width: 150px; flex-shrink: 0; }
+  .pval { font-size: 12px; font-weight: 700; min-width: 90px; text-align: right; flex-shrink: 0; color: #172b4d; }
+
+  input[type=range] { flex: 1; accent-color: #0052cc; cursor: pointer; }
+  input[type=number] { font-size: 12px; padding: 4px 7px; border-radius: 4px; border: 1px solid #c1c7d0; background: #fff; color: #172b4d; width: 90px; }
+  select { font-size: 12px; padding: 4px 8px; border-radius: 4px; border: 1px solid #c1c7d0; background: #fff; color: #172b4d; cursor: pointer; }
+
+  .pill { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: 20px; margin-right: 4px; margin-bottom: 4px; background: #f4f5f7; color: #42526e; border: 1px solid #dfe1e6; cursor: pointer; user-select: none; }
+  .pill.active { background: #deebff; color: #0052cc; border-color: #4c9aff; }
+
+  .divider { border: none; border-top: 1px solid #ebecf0; margin: 1.25rem 0; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 1.25rem; }
+  .metric { background: #f4f5f7; border-radius: 6px; padding: 0.75rem 0.9rem; }
+  .metric-lbl { font-size: 11px; margin: 0 0 3px; font-weight: 600; }
+  .metric-val { font-size: 18px; font-weight: 700; margin: 0; color: #172b4d; }
+  .metric-sub { font-size: 10px; color: #6b778c; }
+
+  .derived-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 1rem; }
+  .derived { background: #fff; border: 1px solid #dfe1e6; border-radius: 6px; padding: 0.75rem 0.9rem; }
+  .derived-lbl { font-size: 11px; color: #6b778c; margin: 0 0 3px; }
+  .derived-val { font-size: 16px; font-weight: 700; color: #172b4d; margin: 0; }
+  .derived-sub { font-size: 10px; color: #97a0af; }
+  .derived.flag-warn { border-color: #ffe380; background: #fffae6; }
+  .derived.flag-ok   { border-color: #79f2c0; background: #e3fcef; }
+  .derived.flag-crit { border-color: #ff8f73; background: #ffebe6; }
+
+  .tier-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .tier-name { font-size: 12px; color: #42526e; min-width: 185px; flex-shrink: 0; }
+  .tier-driver { font-size: 10px; color: #97a0af; }
+  .tier-track { flex: 1; background: #ebecf0; border-radius: 3px; height: 10px; overflow: hidden; }
+  .tier-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+  .tier-val { font-size: 12px; font-weight: 600; min-width: 72px; text-align: right; color: #42526e; flex-shrink: 0; }
+
+  .stack-bar { display: flex; height: 14px; border-radius: 3px; overflow: hidden; margin-bottom: 5px; width: 100%; background:#ebecf0; }
+  .stack-seg { height: 100%; transition: width 0.3s ease; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #6b778c; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  .msg { font-size: 12px; border-radius: 4px; padding: 7px 11px; margin-top: 0.6rem; }
+  .msg-warn { background: #fffae6; color: #974f0c; border: 1px solid #ffe380; }
+  .msg-ok   { background: #e3fcef; color: #064; border: 1px solid #79f2c0; }
+  .msg-crit { background: #ffebe6; color: #bf2600; border: 1px solid #ff8f73; }
+
+  .note { font-size: 11px; color: #97a0af; border-left: 3px solid #dfe1e6; padding-left: 8px; margin-top: 0.75rem; line-height: 1.6; }
+  .note strong { color: #6b778c; }
+
+  .assumption-box { background: #fffae6; border: 1px solid #ffe380; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 0.75rem; font-size: 11px; color: #974f0c; line-height: 1.6; }
+  .assumption-box strong { color: #7a3900; }
+
+  .justify-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 0.5rem; }
+  .justify-table th { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6b778c; padding: 5px 8px; border-bottom: 1px solid #ebecf0; }
+  .justify-table td { padding: 6px 8px; border-bottom: 1px solid #f4f5f7; color: #42526e; vertical-align: top; }
+  .justify-table tr:last-child td { border-bottom: none; }
+  .justify-table td:first-child { font-weight: 600; color: #172b4d; white-space: nowrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+  .breakdown { background: #f4f5f7; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 0.75rem; font-size: 12px; }
+  .breakdown-row { display: flex; justify-content: space-between; padding: 3px 0; color: #42526e; }
+  .breakdown-row.total { border-top: 1px solid #dfe1e6; margin-top: 4px; padding-top: 6px; font-weight: 700; color: #172b4d; }
+  .breakdown-label { color: #6b778c; }
+  .user-breakdown { background: #f0e6ff; border: 1px solid #c0a0e0; }
+
+  .advanced { border: 1px solid #dfe1e6; border-radius: 6px; margin-bottom: 1.25rem; overflow: hidden; }
+  .advanced-header { display: flex; align-items: center; justify-content: space-between; padding: 0.7rem 1rem; cursor: pointer; user-select: none; background: #f4f5f7; font-size: 12px; font-weight: 700; color: #42526e; letter-spacing: 0.04em; }
+  .advanced-header:hover { background: #ebecf0; }
+  .advanced-chevron { transition: transform 0.2s ease; font-size: 14px; color: #6b778c; }
+  .advanced.open .advanced-chevron { transform: rotate(90deg); }
+  .advanced-body { display: none; padding: 1rem; }
+  .advanced.open .advanced-body { display: block; }
+  .calib-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.5rem; }
+  .calib-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
+  .calib-label { font-size: 12px; color: #42526e; }
+  .calib-unit { font-size: 10px; color: #97a0af; }
+  .calib-subhead { grid-column: 1 / -1; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #6b778c; margin-top: 0.5rem; padding-bottom: 2px; border-bottom: 1px solid #ebecf0; }
+  .reset-btn { font-size: 11px; padding: 4px 10px; border-radius: 4px; border: 1px solid #c1c7d0; background: #fff; color: #42526e; cursor: pointer; margin-top: 0.75rem; }
+  .reset-btn:hover { background: #f4f5f7; }
+
+  /* Expandable help sections */
+  details.help { border: 1px solid #dfe1e6; border-radius: 6px; margin-bottom: 1rem; background: #fff; }
+  details.help > summary { padding: 0.6rem 1rem; cursor: pointer; user-select: none; font-size: 12px; font-weight: 700; color: #0052cc; list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.help > summary::-webkit-details-marker { display: none; }
+  details.help > summary::before { content: "▶"; font-size: 10px; color: #6b778c; transition: transform 0.2s ease; }
+  details.help[open] > summary::before { transform: rotate(90deg); }
+  details.help > summary:hover { background: #f4f5f7; }
+  details.help .help-body { padding: 0.25rem 1rem 0.9rem; font-size: 12px; color: #42526e; line-height: 1.65; }
+  details.help .help-body p { margin-bottom: 0.6rem; }
+  details.help .help-body p:last-child { margin-bottom: 0; }
+  details.help .help-body strong { color: #172b4d; }
+  .gloss { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 0.25rem; }
+  .gloss td { padding: 5px 8px; border-bottom: 1px solid #f4f5f7; color: #42526e; vertical-align: top; }
+  .gloss tr:last-child td { border-bottom: none; }
+  .gloss td:first-child { font-weight: 700; color: #172b4d; white-space: nowrap; width: 150px; }
+
+  /* Inline help hint under a control group */
+  .hint { font-size: 10px; color: #97a0af; margin: -0.3rem 0 0.6rem 0; line-height: 1.4; }
+  .input-group-label { display: flex; align-items: baseline; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<h1>HPC / HTC / Cloud Storage Calculator</h1>
+<p class="subtitle">Radio astronomy · SRCNet model &nbsp;·&nbsp; T0 fast POSIX · T1 bulk Rucio · Scratch · Project · User space &nbsp;·&nbsp; <em>All volumes are usable/fillable capacity</em></p>
+
+<div class="motivation">
+  <p><strong>Motivation.</strong> Storage provisioning for a radio astronomy SRCNet node must reflect the data flow through the processing pipeline and fit within the node's online allocation — its share of the SRCNet fabric.</p>
+  <div class="flow">
+    <span class="flow-step" style="background:#deebff;color:#0052cc;">Ingest → T1 bulk</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step" style="background:#deebff;color:#0052cc;">Stage → T0 POSIX</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step" style="background:#ffd2cc;color:#bf2600;">Compute (scratch)</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step" style="background:#e3fcef;color:#064;">Output → project space</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-step" style="background:#eae6ff;color:#403294;">Deliver → user space</span>
+  </div>
+  <p style="margin-top:0.6rem;">
+    <strong>Project space</strong> is the active working area — a nominal allocation per project, driven by science data products, not compute. <strong>T0 fast POSIX</strong> is that same active data placed on fast storage, sized as project space × a ratio (default 1.2) that adds staging/working headroom. <strong>User space</strong> is a headcount quota plus backup overhead. <strong>T1 bulk Rucio</strong> takes the remainder of the allocation after T0, Project, and User are carved out.
+  </p>
+  <p>
+    <strong>Scratch</strong> is the only compute-driven tier — ephemeral pipeline working memory scaling with PFLOPS — and is a separate fast filesystem, not part of the online allocation.
+  </p>
+  <p><strong>All volumes are usable/fillable capacity.</strong> Underlying protection (replication, EC, RAID) and I/O throughput are out of scope (see notes). All ratios are tunable in the Advanced panel.</p>
+</div>
+
+<!-- HOW TO USE -->
+<details class="help">
+  <summary>How to use this calculator</summary>
+  <div class="help-body">
+    <p>This tool estimates the storage a single SRCNet node needs, broken into five pools. Adjust the inputs on the left (what the node does) and right (its allocation), and the estimates update live.</p>
+    <p><strong>1. Set what the node runs:</strong> the number of active projects, its compute (PFLOPS), and the pipeline type (which affects scratch only).</p>
+    <p><strong>2. Set the node's allocation:</strong> the total SRCNet online storage and this node's percentage share of it. This is the budget that T0, Project, User, and T1 must fit within.</p>
+    <p><strong>3. Read the partition bar:</strong> it shows how the allocation divides into T0, Project, User, and the T1 bulk remainder. A red warning means the node is over-allocated (the sized pools exceed its share).</p>
+    <p><strong>4. Tune the model (optional):</strong> open the Advanced panel to change the underlying ratios (space per project, T0:Project ratio, scratch per PFLOP, etc.). Defaults are based on the SKA SRC reference. Use “Reset” to restore them.</p>
+    <p>Every figure is <strong>usable capacity</strong> — the space presented to users and pipelines, not raw disk. How that capacity is protected (replication, erasure coding) and whether the node has enough I/O bandwidth are separate questions, noted at the bottom.</p>
+  </div>
+</details>
+
+<!-- GLOSSARY -->
+<details class="help">
+  <summary>Glossary — tiers &amp; terms</summary>
+  <div class="help-body">
+    <table class="gloss">
+      <tr><td>T0 — fast POSIX</td><td>High-performance, low-latency storage where active project data is processed. Sized as Project space × the T0:Project ratio.</td></tr>
+      <tr><td>T1 — bulk Rucio</td><td>High-capacity bulk archive (Rucio-managed). Takes the remainder of the node allocation after T0, Project, and User are carved out.</td></tr>
+      <tr><td>Project space</td><td>The active working area for science data products. Nominal allocation per project × number of active projects. Independent of compute.</td></tr>
+      <tr><td>Scratch / cache</td><td>Ephemeral pipeline working space (calibration intermediates, gridding buffers). The only pool that scales with compute. A separate filesystem — not part of the online allocation.</td></tr>
+      <tr><td>User space</td><td>Per-user home/working quota, plus a backup overhead factor for snapshots and versioning.</td></tr>
+      <tr><td>SRCNet Online Total</td><td>The total online (T0 + T1) storage across the whole SRC Network fabric. A node receives a percentage share of this.</td></tr>
+      <tr><td>Node share</td><td>This node's percentage of the SRCNet Online Total — its storage budget.</td></tr>
+      <tr><td>T0:Project ratio</td><td>How much larger T0 is than Project space, to allow staging and working headroom on fast storage. Default 1.2 (T0 is 20% larger than Project).</td></tr>
+      <tr><td>PFLOPS</td><td>Peta-FLOPS — the node's compute capacity. Drives scratch and the per-core figures.</td></tr>
+      <tr><td>Pipeline type</td><td>The kind of radio astronomy processing. Continuum, spectral line, and pulsar workloads exercise scratch differently (a multiplier on scratch volume only).</td></tr>
+      <tr><td>Backup overhead</td><td>Extra usable capacity on user space for snapshots / versioning / copy-on-write retention. Applied to user space only.</td></tr>
+    </table>
+  </div>
+</details>
+
+<!-- ADVANCED -->
+<div class="advanced" id="advanced">
+  <div class="advanced-header" onclick="document.getElementById('advanced').classList.toggle('open')">
+    <span>⚙ Advanced / calibration — model parameters &amp; thresholds</span>
+    <span class="advanced-chevron">▶</span>
+  </div>
+  <div class="advanced-body">
+    <div class="calib-grid">
+      <div class="calib-subhead">Storage scaling</div>
+      <div class="calib-row"><span class="calib-label">Nominal space per project <span class="calib-unit">PB/project</span></span><input type="number" id="c_perproj" value="0.5" step="0.1" min="0" oninput="recalc()"></div>
+      <div class="calib-row"><span class="calib-label">T0 : Project ratio <span class="calib-unit">T0 = project × ratio</span></span><input type="number" id="c_t0ratio" value="1.2" step="0.05" min="1" oninput="recalc()"></div>
+      <div class="calib-row"><span class="calib-label">Scratch per PFLOP <span class="calib-unit">PB/PFLOP</span></span><input type="number" id="c_scratch" value="0.5" step="0.05" min="0" oninput="recalc()"></div>
+      <div class="calib-subhead">Compute &amp; user</div>
+      <div class="calib-row"><span class="calib-label">Cores per PFLOP <span class="calib-unit">cores/PFLOP</span></span><input type="number" id="c_cores" value="5000" step="100" min="1" oninput="recalc()"></div>
+      <div class="calib-row"><span class="calib-label">User quota <span class="calib-unit">TB/user</span></span><input type="number" id="c_userq" value="0.5" step="0.1" min="0" oninput="recalc()"></div>
+      <div class="calib-subhead">Flag thresholds</div>
+      <div class="calib-row"><span class="calib-label">Scratch warn / critical <span class="calib-unit">GB/core</span></span><span style="display:flex;gap:6px;"><input type="number" id="c_scr_warn" value="100" step="10" min="1" style="width:62px;" oninput="recalc()"><input type="number" id="c_scr_crit" value="200" step="10" min="1" style="width:62px;" oninput="recalc()"></span></div>
+      <div class="calib-row"><span class="calib-label">Allocation-use warn <span class="calib-unit">% used</span></span><input type="number" id="c_fit_warn" value="90" step="5" min="1" max="100" oninput="recalc()"></div>
+    </div>
+    <button class="reset-btn" onclick="resetCalibration()">Reset to SKA SRC defaults</button>
+  </div>
+</div>
+
+<!-- INPUTS -->
+<div class="two-col">
+  <div>
+    <p class="sec-label">Projects &amp; compute</p>
+    <p class="hint">What this node runs. Projects drive Project &amp; T0 space; compute drives scratch only.</p>
+    <div class="prow">
+      <span class="plabel">Active projects</span>
+      <input type="range" id="projects" min="1" max="100" step="1" value="20" oninput="recalc()">
+      <span class="pval" id="projects-out">20</span>
+    </div>
+    <div class="prow">
+      <span class="plabel">Node compute</span>
+      <input type="range" id="pflops" min="0.1" max="20" step="0.1" value="2" oninput="recalc()">
+      <span class="pval" id="pflops-out">2.0 PFLOPS</span>
+    </div>
+    <div class="prow" style="flex-direction:column;align-items:flex-start;gap:6px;">
+      <span class="plabel">Pipeline type <span style="font-weight:400;color:#97a0af;">(scratch only)</span></span>
+      <div>
+        <span class="pill active" onclick="setPipeline('continuum',this)">Continuum</span>
+        <span class="pill" onclick="setPipeline('spectral',this)">Spectral line</span>
+        <span class="pill" onclick="setPipeline('pulsar',this)">Pulsar/transient</span>
+        <span class="pill" onclick="setPipeline('custom',this)">Custom</span>
+      </div>
+    </div>
+    <div id="custom-mult" style="display:none; margin-top:0.25rem; padding:0.6rem 0.8rem; background:#f4f5f7; border-radius:6px;">
+      <div class="prow" style="margin-bottom:0;">
+        <span class="plabel" style="min-width:120px;">Scratch multiplier</span>
+        <input type="number" id="cust_scr" value="1.0" step="0.1" min="0" style="width:80px;" oninput="recalc()">
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <p class="sec-label">Node allocation &amp; sizing</p>
+    <p class="hint">The node's storage budget = SRCNet Online Total × node share. T0 + Project + User must fit inside it; T1 takes the rest.</p>
+    <div class="prow">
+      <span class="plabel">SRCNet Online Total</span>
+      <input type="range" id="fac-online" min="10" max="500" step="5" value="270" oninput="recalc()">
+      <span class="pval" id="fac-out">270 PB</span>
+    </div>
+    <div class="prow">
+      <span class="plabel">Node share</span>
+      <select id="nodeshare" onchange="recalc()">
+        <option value="1">1%</option><option value="2">2%</option><option value="5">5%</option>
+        <option value="8">8%</option><option value="10">10%</option><option value="15">15%</option>
+        <option value="20" selected>20%</option>
+      </select>
+      <span class="pval" id="share-out">54.0 PB</span>
+    </div>
+    <div class="prow">
+      <span class="plabel">T0 : Project ratio</span>
+      <input type="range" id="t0ratio" min="1.0" max="2.0" step="0.05" value="1.2" oninput="syncRatio('range')">
+      <span class="pval" id="t0ratio-out">1.20</span>
+    </div>
+
+    <p class="sec-label" style="margin:0.9rem 0 0.5rem;">User space</p>
+    <div class="prow">
+      <span class="plabel">Users at this node</span>
+      <input type="range" id="users" min="5" max="300" step="5" value="50" oninput="recalc()">
+      <span class="pval" id="users-out">50</span>
+    </div>
+    <div class="prow">
+      <span class="plabel">Backup overhead</span>
+      <select id="backup" onchange="recalc()">
+        <option value="1.0">None</option>
+        <option value="1.1">Light — occasional snapshots</option>
+        <option value="1.25" selected>Moderate — daily, 7-day</option>
+        <option value="1.5">Full — versioning + snapshots</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<p class="sec-label">SRCNet node allocation — partition (T0 + Project + User + T1 remainder)</p>
+<p class="hint">The full bar = the node's allocation. Coloured segments are the sized pools; the green T1 segment is whatever capacity is left for bulk archive.</p>
+<div class="stack-bar" id="stack-bar"></div>
+<div class="legend-row" id="stack-legend"></div>
+<div id="alloc-validation"></div>
+
+<div class="breakdown" id="t0-breakdown"></div>
+<div class="assumption-box" id="assumption-box"></div>
+
+<hr class="divider">
+<p class="sec-label">Usable capacity required — this node</p>
+<div class="metrics" id="metrics"></div>
+
+<p class="sec-label">Relative sizing</p>
+<div id="tier-bars"></div>
+<div class="breakdown user-breakdown" id="user-breakdown"></div>
+
+<hr class="divider">
+<p class="sec-label">Tier justification</p>
+<table class="justify-table" id="justify-table"></table>
+
+<hr class="divider">
+<p class="sec-label">Per-core capacity figures</p>
+<div class="derived-grid" id="derived-grid"></div>
+<div id="scr-flag"></div>
+
+<p class="note"><strong>⚠ I/O throughput is not modelled here.</strong> This tool sizes capacity only. Scratch, T0 staging, and T1↔T0 transfer all have throughput (GB/s) requirements that are frequently the binding constraint for radio astronomy pipelines — often more limiting than capacity. Assess aggregate scratch bandwidth, T0 staging rate vs observation cadence, and the T1↔T0 interconnect separately.</p>
+<p class="note" id="ref-note"><strong>Reference lineage.</strong> Original SKA SRC reference: 10 PFLOPS → 270 PB online, ~5 PB scratch, 50,000 cores (≈ 0.5 PB/PFLOP scratch, 5,000 cores/PFLOP). This model expresses online storage as a partition of the node allocation: Project (projects × nominal), T0 (Project × ratio), User, and T1 as the bulk remainder. Scratch is the only compute-scaled tier. T2 tape excluded.</p>
+<p class="note" id="model-note"></p>
+
+<script>
+  let pipeline = 'continuum';
+
+  const PIPELINE = {
+    continuum: { scratch_mult: 1.0, label: 'Continuum imaging', desc: 'Moderate scratch volume; visibility averaging reduces data rate through the pipeline.' },
+    spectral:  { scratch_mult: 2.5, label: 'Spectral line',      desc: 'High scratch volume — large channel counts heavily exercise working space per job.' },
+    pulsar:    { scratch_mult: 0.6, label: 'Pulsar / transient', desc: 'Lower scratch volume but high I/O throughput per unit data (throughput not modelled).' },
+    custom:    { scratch_mult: 1.0, label: 'Custom',             desc: 'User-defined scratch multiplier — calibrate against measured pipeline volumes.' },
+  };
+
+  const CALIB_DEFAULTS = { c_perproj: 0.5, c_t0ratio: 1.2, c_scratch: 0.5, c_cores: 5000, c_userq: 0.5, c_scr_warn: 100, c_scr_crit: 200, c_fit_warn: 90 };
+  const BACKUP_LABEL = { '1.0':'None', '1.1':'Light', '1.25':'Moderate', '1.5':'Full' };
+  const COLOR = { t0:'#0052cc', t1:'#00875a', scratch:'#de350b', user:'#6554c0', project:'#5243aa' };
+
+  function setPipeline(p, el) {
+    pipeline = p;
+    document.querySelectorAll('.pill').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('custom-mult').style.display = (p === 'custom') ? 'block' : 'none';
+    recalc();
+  }
+  function resetCalibration() {
+    for (const [id, v] of Object.entries(CALIB_DEFAULTS)) document.getElementById(id).value = v;
+    document.getElementById('t0ratio').value = CALIB_DEFAULTS.c_t0ratio;
+    recalc();
+  }
+  // Keep the main-panel ratio slider and the advanced-panel ratio field in sync
+  function syncRatio(src) {
+    if (src === 'range') document.getElementById('c_t0ratio').value = document.getElementById('t0ratio').value;
+    recalc();
+  }
+  function numVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+  function fmt(pb) {
+    if (pb >= 1000) return (pb/1000).toFixed(1) + ' EB';
+    if (pb >= 1)    return pb.toFixed(2) + ' PB';
+    return (pb * 1000).toFixed(0) + ' TB';
+  }
+
+  function recalc() {
+    const PER_PROJECT    = numVal('c_perproj');
+    const SCRATCH_PER_PF = numVal('c_scratch');
+    const CORES_PER_PF   = numVal('c_cores');
+    const USER_TB        = numVal('c_userq');
+    const SCR_WARN       = numVal('c_scr_warn');
+    const SCR_CRIT       = numVal('c_scr_crit');
+    const FIT_WARN       = numVal('c_fit_warn');
+
+    // T0:Project ratio — advanced field is source of truth; mirror to the slider
+    const T0_RATIO = numVal('c_t0ratio');
+    document.getElementById('t0ratio').value = T0_RATIO;
+    document.getElementById('t0ratio-out').textContent = T0_RATIO.toFixed(2);
+
+    let scr_mult = (pipeline === 'custom') ? numVal('cust_scr') : PIPELINE[pipeline].scratch_mult;
+    const p = PIPELINE[pipeline];
+
+    const projects  = parseInt(document.getElementById('projects').value);
+    const pflops    = numVal('pflops');
+    const facOnline = numVal('fac-online');
+    const share     = numVal('nodeshare') / 100;
+    const users     = parseInt(document.getElementById('users').value);
+    const backup    = numVal('backup');
+
+    document.getElementById('projects-out').textContent = projects;
+    document.getElementById('pflops-out').textContent   = pflops.toFixed(1) + ' PFLOPS';
+    document.getElementById('fac-out').textContent      = facOnline.toFixed(0) + ' PB';
+    document.getElementById('users-out').textContent    = users;
+
+    const cores = Math.round(pflops * CORES_PER_PF);
+    const nodeOnline = facOnline * share;
+
+    // --- Volumes (usable) ---
+    const project = projects * PER_PROJECT;       // active working area
+    const t0      = project * T0_RATIO;           // same data on fast storage + headroom
+    const user_base   = users * USER_TB / 1000;
+    const user_backup = user_base * (backup - 1.0);
+    const user        = user_base * backup;
+
+    const sized   = t0 + project + user;          // pools carved from allocation
+    const t1      = nodeOnline - sized;            // bulk remainder (may be negative)
+    const usedPct = nodeOnline > 0 ? (sized / nodeOnline * 100) : 0;
+    const over    = t1 < 0;
+
+    const scratch = SCRATCH_PER_PF * pflops * scr_mult;  // separate filesystem
+
+    document.getElementById('share-out').textContent = fmt(nodeOnline);
+
+    // Partition bar
+    const seg = v => nodeOnline > 0 ? Math.max(0, v / nodeOnline * 100) : 0;
+    document.getElementById('stack-bar').innerHTML =
+      `<div class="stack-seg" style="width:${seg(t0)}%;background:${COLOR.t0};"></div>` +
+      `<div class="stack-seg" style="width:${seg(project)}%;background:${COLOR.project};"></div>` +
+      `<div class="stack-seg" style="width:${seg(user)}%;background:${COLOR.user};"></div>` +
+      `<div class="stack-seg" style="width:${seg(Math.max(0,t1))}%;background:${COLOR.t1};"></div>`;
+    document.getElementById('stack-legend').innerHTML =
+      `<span class="legend-item"><span class="legend-dot" style="background:${COLOR.t0}"></span>T0 ${fmt(t0)}</span>` +
+      `<span class="legend-item"><span class="legend-dot" style="background:${COLOR.project}"></span>Project ${fmt(project)}</span>` +
+      `<span class="legend-item"><span class="legend-dot" style="background:${COLOR.user}"></span>User ${fmt(user)}</span>` +
+      `<span class="legend-item"><span class="legend-dot" style="background:${COLOR.t1}"></span>T1 remainder ${fmt(Math.max(0,t1))}</span>` +
+      `<span class="legend-item" style="color:#97a0af;">allocation ${fmt(nodeOnline)}</span>`;
+
+    const av = document.getElementById('alloc-validation');
+    if (over) {
+      av.innerHTML = `<div class="msg msg-crit">&#9888; Over-allocated. T0 + Project + User = ${fmt(sized)} exceeds the node allocation of ${fmt(nodeOnline)} by ${fmt(-t1)}. T1 bulk would be negative. Reduce projects/ratio/users or increase node share.</div>`;
+    } else if (usedPct > FIT_WARN) {
+      av.innerHTML = `<div class="msg msg-warn">&#9888; T0 + Project + User = ${fmt(sized)} use ${usedPct.toFixed(0)}% of the ${fmt(nodeOnline)} allocation — above ${FIT_WARN}%. Only ${fmt(t1)} left for T1 bulk.</div>`;
+    } else {
+      av.innerHTML = `<div class="msg msg-ok">&#10003; T0 + Project + User = ${fmt(sized)} (${usedPct.toFixed(0)}% of allocation). T1 bulk archive takes the remaining ${fmt(t1)}.</div>`;
+    }
+
+    // T0 breakdown
+    document.getElementById('t0-breakdown').innerHTML = `
+      <p style="font-size:11px;font-weight:700;color:#6b778c;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">T0 — composition</p>
+      <div class="breakdown-row"><span>Project space (${projects} × ${fmt(PER_PROJECT)})</span><span>${fmt(project)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">× ${T0_RATIO.toFixed(2)} T0:Project ratio (staging/working headroom)</span><span>${fmt(t0)}</span></div>
+      <div class="breakdown-row total"><span>T0 total</span><span>${fmt(t0)}</span></div>`;
+
+    document.getElementById('assumption-box').innerHTML =
+      `<strong>Planning assumptions:</strong> ${projects} active project${projects>1?'s':''} at ${fmt(PER_PROJECT)} each → ${fmt(project)} project space. T0 = project × ${T0_RATIO.toFixed(2)} = ${fmt(t0)} (the ${((T0_RATIO-1)*100).toFixed(0)}% uplift is staging/working headroom on fast storage). Project space is nominal and compute-independent; only scratch scales with PFLOPS. T1 bulk absorbs the allocation remainder. Scratch is a separate filesystem, outside the online allocation.`;
+
+    // Tiers
+    const tiers = [
+      { key:'t0',      name:'T0 — fast POSIX',  val:t0,             driver:'project × ratio' },
+      { key:'t1',      name:'T1 — bulk Rucio',   val:Math.max(0,t1), driver:'remainder of allocation' },
+      { key:'project', name:'Project space',      val:project,        driver:'projects × nominal' },
+      { key:'scratch', name:'Scratch / cache',    val:scratch,        driver:'compute-scaled, ephemeral' },
+      { key:'user',    name:'User space',         val:user,           driver:'headcount + backup' },
+    ];
+    const maxVal = Math.max(...tiers.map(t => t.val));
+
+    document.getElementById('metrics').innerHTML = tiers.map(t =>
+      `<div class="metric"><p class="metric-lbl" style="color:${COLOR[t.key]}">${t.name}</p><p class="metric-val">${fmt(t.val)}</p><span class="metric-sub">${t.driver}</span></div>`
+    ).join('');
+
+    document.getElementById('tier-bars').innerHTML = tiers.map(t => {
+      const pct = maxVal > 0 ? (t.val / maxVal * 100).toFixed(1) : 0;
+      return `<div class="tier-row">
+        <span class="tier-name"><span class="dot" style="background:${COLOR[t.key]}"></span>${t.name} <span class="tier-driver">${t.driver}</span></span>
+        <div class="tier-track"><div class="tier-fill" style="width:${pct}%;background:${COLOR[t.key]};"></div></div>
+        <span class="tier-val">${fmt(t.val)}</span>
+      </div>`;
+    }).join('') +
+    `<p style="font-size:10px;color:#97a0af;margin-top:6px;">T0 and Project describe the same active data — Project is the science allocation, T0 its fast-tier footprint (× ${T0_RATIO.toFixed(2)}). T1 is the bulk remainder of the allocation. Scratch is separate, not part of the allocation.</p>`;
+
+    const backupLabel = BACKUP_LABEL[backup.toString()] || (backup + '×');
+    document.getElementById('user-breakdown').innerHTML = `
+      <p style="font-size:11px;font-weight:700;color:#6554c0;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">User space — backup overhead (${backupLabel})</p>
+      <div class="breakdown-row"><span>Base quota (${users} × ${USER_TB} TB)</span><span>${fmt(user_base)}</span></div>
+      <div class="breakdown-row"><span class="breakdown-label">+ backup (${((backup-1)*100).toFixed(0)}%)</span><span>+ ${fmt(user_backup)}</span></div>
+      <div class="breakdown-row total"><span>User space total</span><span>${fmt(user)}</span></div>`;
+
+    document.getElementById('justify-table').innerHTML = `
+      <thead><tr><th>Tier</th><th>Usable capacity</th><th>Scaling driver</th><th>Justification</th></tr></thead>
+      <tbody>
+        <tr><td><span class="dot" style="background:${COLOR.t0}"></span>T0 fast POSIX</td>
+          <td>${fmt(t0)}</td><td>Project × ${T0_RATIO.toFixed(2)}</td>
+          <td>The active project data placed on fast storage, plus a working/staging headroom expressed as the T0:Project ratio. An independently-sized pool carved from the node allocation.</td></tr>
+        <tr><td><span class="dot" style="background:${COLOR.t1}"></span>T1 bulk Rucio</td>
+          <td>${fmt(Math.max(0,t1))}</td><td>Remainder of allocation</td>
+          <td>Bulk archive. Takes whatever remains in the SRCNet node allocation after T0, Project, and User are carved out. Negative remainder = over-allocation.</td></tr>
+        <tr><td><span class="dot" style="background:${COLOR.project}"></span>Project space</td>
+          <td>${fmt(project)}</td><td>Projects × nominal PB</td>
+          <td>The active working area: nominal per-project allocation × number of active projects. Driven by retained science volume, independent of compute.</td></tr>
+        <tr><td><span class="dot" style="background:${COLOR.scratch}"></span>Scratch / cache</td>
+          <td>${fmt(scratch)}</td><td>Compute-scaled, ephemeral</td>
+          <td>The only compute-driven tier. Pipeline working memory scaling with PFLOPS × pipeline multiplier. Separate filesystem, outside the allocation; no backup. <strong>Throughput, not capacity, is usually the real constraint — not modelled here.</strong></td></tr>
+        <tr><td><span class="dot" style="background:${COLOR.user}"></span>User space</td>
+          <td>${fmt(user)}</td><td>Headcount + backup</td>
+          <td>Per-user quota at ${USER_TB} TB/user plus a backup overhead factor (${backupLabel}: ×${backup}) for snapshots, versioning, and CoW retention.</td></tr>
+      </tbody>`;
+
+    // Per-core capacity
+    const scratch_gb_core = (scratch * 1e6) / cores;
+    const t0_gb_core      = (t0 * 1e6) / cores;
+    const proj_gb_core    = (PER_PROJECT * 1e6) / cores;
+    const scrFlagClass = scratch_gb_core >= SCR_CRIT ? 'flag-crit' : scratch_gb_core >= SCR_WARN ? 'flag-warn' : 'flag-ok';
+
+    document.getElementById('derived-grid').innerHTML = `
+      <div class="derived"><p class="derived-lbl">Core count (estimated)</p><p class="derived-val">${cores.toLocaleString()}</p><p class="derived-sub">@ ${CORES_PER_PF.toLocaleString()} cores/PFLOP</p></div>
+      <div class="derived ${scrFlagClass}"><p class="derived-lbl">Scratch per core</p><p class="derived-val">${scratch_gb_core.toFixed(0)} GB</p><p class="derived-sub">warn &gt;${SCR_WARN} · crit &gt;${SCR_CRIT} GB</p></div>
+      <div class="derived"><p class="derived-lbl">T0 per core</p><p class="derived-val">${t0_gb_core.toFixed(0)} GB</p><p class="derived-sub">Fast POSIX usable per core</p></div>
+      <div class="derived"><p class="derived-lbl">Per-project per core</p><p class="derived-val">${proj_gb_core.toFixed(0)} GB</p><p class="derived-sub">Single project basis</p></div>`;
+
+    const sf = document.getElementById('scr-flag');
+    if (scratch_gb_core >= SCR_CRIT) sf.innerHTML = `<div class="msg msg-crit">&#9888; Scratch ${scratch_gb_core.toFixed(0)} GB/core — above ${SCR_CRIT} GB critical. Likely I/O-bound; assess scratch throughput, consider burst buffer / NVMe tiering.</div>`;
+    else if (scratch_gb_core >= SCR_WARN) sf.innerHTML = `<div class="msg msg-warn">&#9888; Scratch ${scratch_gb_core.toFixed(0)} GB/core — above ${SCR_WARN} GB. Verify filesystem throughput can keep cores fed.</div>`;
+    else sf.innerHTML = `<div class="msg msg-ok">&#10003; Scratch ${scratch_gb_core.toFixed(0)} GB/core — within configured range (&lt;${SCR_WARN} GB/core).</div>`;
+
+    document.getElementById('model-note').textContent =
+      p.label + (pipeline==='custom' ? ' (scratch ×'+scr_mult+')' : '') + ' · ' + p.desc + ' · ' +
+      'Nominal ' + PER_PROJECT + ' PB/project; T0:Project ' + T0_RATIO.toFixed(2) + '; scratch ' + SCRATCH_PER_PF + ' PB/PFLOP × multiplier; ' +
+      CORES_PER_PF.toLocaleString() + ' cores/PFLOP; ' + USER_TB + ' TB/user. T2 tape excluded.';
+  }
+
+  recalc();
+</script>
+</body>
+</html>
